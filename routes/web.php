@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\RoomController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 
 Route::get('/', function () {
     return redirect()->route('rooms.index');
@@ -14,6 +15,11 @@ Route::get('/dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
+    // Test route to check authentication
+    Route::get('/test-auth', function () {
+        return response()->json(['authenticated' => true, 'user' => Auth::user()->name]);
+    })->name('test.auth');
+
     // Room routes
     Route::get('/rooms', [RoomController::class, 'index'])->name('rooms.index');
     Route::get('/rooms/create', [RoomController::class, 'create'])->name('rooms.create');

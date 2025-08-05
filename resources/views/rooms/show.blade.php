@@ -123,28 +123,37 @@ $(document).ready(function() {
     function loadMessages() {
         $.get('{{ route("chat.messages") }}', { room_id: roomId })
             .done(function(response) {
-                if (response.success) {
+                console.log('Messages response:', response); // Debug log
+                if (response.success && response.messages && Array.isArray(response.messages)) {
                     $('#messagesContainer').empty();
                     response.messages.forEach(function(message) {
                         const isOwn = message.user_id === currentUserId;
                         addMessage(message, message.user, isOwn);
                     });
                     scrollToBottom();
+                } else {
+                    console.error('Invalid messages response:', response);
+                    $('#messagesContainer').html('<div class="text-muted text-center">No messages available</div>');
                 }
+            })
+            .fail(function(xhr) {
+                console.error('Failed to load messages:', xhr);
+                $('#messagesContainer').html('<div class="text-danger text-center">Failed to load messages</div>');
             });
     }
     
     function loadParticipants() {
         $.get('{{ route("chat.participants") }}', { room_id: roomId })
             .done(function(response) {
-                if (response.success) {
+                console.log('Participants response:', response); // Debug log
+                if (response.success && response.participants && Array.isArray(response.participants)) {
                     $('#participantsList').empty();
                     $('#participantCount').text(response.participants.length);
                     
                     response.participants.forEach(function(participant) {
                         const statusClass = 'status-' + (participant.profile?.status || 'offline');
                         const avatarHtml = participant.profile?.avatar ? 
-                            '<img src="/storage/' + participant.profile.avatar + '" class="rounded-circle me-2" width="32" height="32" alt="' + participant.display_name + '">' :
+                            '<img src="/storage/' + participant.profile.avatar + '" class="rounded-circle me-2" width="32" height="32" alt="' + participant.name + '">' :
                             '<i class="fas fa-user-circle me-2" style="font-size: 32px; color: #6c757d;"></i>';
                         
                         $('#participantsList').append(`
@@ -160,7 +169,14 @@ $(document).ready(function() {
                             </div>
                         `);
                     });
+                } else {
+                    console.error('Invalid participants response:', response);
+                    $('#participantsList').html('<div class="text-muted text-center">No participants available</div>');
                 }
+            })
+            .fail(function(xhr) {
+                console.error('Failed to load participants:', xhr);
+                $('#participantsList').html('<div class="text-danger text-center">Failed to load participants</div>');
             });
     }
     
@@ -236,7 +252,7 @@ $(document).ready(function() {
     function addMessage(message, user, isOwn) {
         const messageClass = isOwn ? 'own' : 'other';
         const avatarHtml = user.profile?.avatar ? 
-            '<img src="/storage/' + user.profile.avatar + '" class="rounded-circle me-2" width="24" height="24" alt="' + user.display_name + '">' :
+            '<img src="/storage/' + user.profile.avatar + '" class="rounded-circle me-2" width="24" height="24" alt="' + user.name + '">' :
             '<i class="fas fa-user-circle me-2" style="font-size: 24px; color: #6c757d;"></i>';
         
         const messageHtml = `
@@ -245,7 +261,7 @@ $(document).ready(function() {
                     ${avatarHtml}
                     <div class="flex-grow-1">
                         <div class="d-flex align-items-center mb-1">
-                            <strong class="me-2">${user.display_name}</strong>
+                            <strong class="me-2">${user.name}</strong>
                             <small class="text-muted">${new Date(message.created_at).toLocaleTimeString()}</small>
                         </div>
                         <div>${message.content}</div>

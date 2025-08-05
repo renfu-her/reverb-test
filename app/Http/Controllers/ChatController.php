@@ -82,7 +82,7 @@ class ChatController extends Controller
         $message = Message::create([
             'room_id' => $room->id,
             'user_id' => $user->id,
-            'content' => $user->display_name . ' joined the room',
+            'content' => $user->name . ' joined the room',
             'type' => 'join',
         ]);
 
@@ -114,7 +114,7 @@ class ChatController extends Controller
         $message = Message::create([
             'room_id' => $room->id,
             'user_id' => $user->id,
-            'content' => $user->display_name . ' left the room',
+            'content' => $user->name . ' left the room',
             'type' => 'leave',
         ]);
 
@@ -142,7 +142,8 @@ class ChatController extends Controller
             ->orderBy('created_at', 'desc')
             ->limit($limit)
             ->get()
-            ->reverse();
+            ->reverse()
+            ->values(); // Ensure it's a proper array
 
         return response()->json([
             'success' => true,

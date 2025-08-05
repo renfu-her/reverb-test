@@ -59,7 +59,7 @@ class ChatMessageSent implements ShouldBroadcast
             ],
             'user' => [
                 'id' => $this->user->id,
-                'name' => $this->user->display_name,
+                'name' => $this->user->name,
                 'avatar' => $this->user->avatar,
             ],
             'room' => [
