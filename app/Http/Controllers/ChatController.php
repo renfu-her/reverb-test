@@ -63,7 +63,7 @@ class ChatController extends Controller
             return response()->json(['error' => 'Cannot join this room'], 403);
         }
 
-        // Check if already in room
+        // Check if already in room (active participation)
         $existingParticipation = $room->participants()
             ->where('user_id', $user->id)
             ->whereNull('left_at')
@@ -73,10 +73,33 @@ class ChatController extends Controller
             return response()->json(['error' => 'Already in this room'], 400);
         }
 
-        // Add user to room participants
-        $room->participants()->attach($user->id, [
-            'joined_at' => now(),
-        ]);
+        // Check if user previously left the room (has a record with left_at)
+        $previousParticipation = $room->participants()
+            ->where('user_id', $user->id)
+            ->whereNotNull('left_at')
+            ->first();
+
+        if ($previousParticipation) {
+            // Update existing record to rejoin
+            $room->participants()->updateExistingPivot($user->id, [
+                'joined_at' => now(),
+                'left_at' => null,
+            ]);
+        } else {
+            // Create new participation record
+            $room->participants()->attach($user->id, [
+                'joined_at' => now(),
+                'left_at' => null,
+            ]);
+        }
+
+        // Update user status to online
+        if ($user->profile) {
+            $user->profile->update([
+                'status' => 'online',
+                'last_seen_at' => now(),
+            ]);
+        }
 
         // Create join message
         $message = Message::create([
@@ -104,11 +127,23 @@ class ChatController extends Controller
         $room = Room::findOrFail($request->room_id);
         $user = Auth::user();
 
-        // Update participation record
-        $room->participants()
+        // Find the participation record and update it
+        $participation = $room->participants()
             ->where('user_id', $user->id)
             ->whereNull('left_at')
-            ->update(['left_at' => now()]);
+            ->first();
+
+        if (!$participation) {
+            return response()->json(['error' => 'You are not a participant in this room'], 403);
+        }
+
+        // Update the pivot table record
+        $room->participants()->updateExistingPivot($user->id, ['left_at' => now()]);
+
+        // Update user last seen time
+        if ($user->profile) {
+            $user->profile->update(['last_seen_at' => now()]);
+        }
 
         // Create leave message
         $message = Message::create([

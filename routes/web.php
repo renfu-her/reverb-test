@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\RoomController;
+use App\Http\Controllers\HeartbeatController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
@@ -36,6 +37,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/chat/leave-room', [ChatController::class, 'leaveRoom'])->name('chat.leave-room');
     Route::get('/chat/messages', [ChatController::class, 'getMessages'])->name('chat.messages');
     Route::get('/chat/participants', [ChatController::class, 'getParticipants'])->name('chat.participants');
+
+    // Heartbeat routes
+    Route::post('/heartbeat', [HeartbeatController::class, 'heartbeat'])->name('heartbeat');
 
     // Profile routes
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');

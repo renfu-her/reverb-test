@@ -85,6 +85,12 @@ $(document).ready(function() {
     loadParticipants();
     checkRoomStatus();
     
+    // Update user status to online when entering room page
+    updateUserStatus('online');
+    
+    // Start heartbeat system
+    startHeartbeat();
+    
     // Join room automatically if not already in
     if (!isInRoom) {
         joinRoom();
@@ -240,7 +246,7 @@ $(document).ready(function() {
         .done(function(response) {
             if (response.success) {
                 $('#messageInput').val('');
-                addMessage(response.message, response.message.user, true);
+                addMessage(response.message, response.message, true);
             }
         })
         .fail(function(xhr) {
@@ -294,6 +300,66 @@ $(document).ready(function() {
             $('#leaveRoomBtn').hide();
         }
     }
+    
+    function updateUserStatus(status) {
+        $.ajax({
+            url: '{{ route("profile.status") }}',
+            type: 'PUT',
+            data: {
+                status: status,
+                _token: $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function(response) {
+                console.log('User status updated to:', status);
+            },
+            error: function(xhr) {
+                console.error('Failed to update user status:', xhr);
+            }
+        });
+    }
+    
+    // Heartbeat system
+    let heartbeatInterval;
+    
+    function startHeartbeat() {
+        // Send initial heartbeat
+        sendHeartbeat();
+        
+        // Set up heartbeat interval (every 5 seconds)
+        heartbeatInterval = setInterval(sendHeartbeat, 5000);
+        
+        // Listen for heartbeat events from other users
+        window.Echo.channel('user-status')
+            .listen('.user.heartbeat', (event) => {
+                console.log('Received heartbeat from:', event.user.name);
+                // Optionally update participant list to show real-time status
+                loadParticipants();
+            });
+    }
+    
+    function sendHeartbeat() {
+        $.post('/heartbeat', {
+            _token: $('meta[name="csrf-token"]').attr('content')
+        })
+        .done(function(response) {
+            console.log('Heartbeat sent:', response.timestamp);
+        })
+        .fail(function(xhr) {
+            console.error('Failed to send heartbeat:', xhr);
+        });
+    }
+    
+    function stopHeartbeat() {
+        if (heartbeatInterval) {
+            clearInterval(heartbeatInterval);
+            heartbeatInterval = null;
+        }
+    }
+    
+    // Stop heartbeat when page is unloaded
+    $(window).on('beforeunload', function() {
+        stopHeartbeat();
+    });
     
     function scrollToBottom() {
         const container = $('#messagesContainer');
