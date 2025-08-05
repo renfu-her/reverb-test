@@ -1,0 +1,181 @@
+---
+alwaysApply: true
+---
+## 1. 安裝 Laravel 專案，如果目前沒有專案在執行
+
+```php
+composer create-project --prefer-dist laravel/laravel reverbapp 
+cd reverbapp 
+php artisan serve
+```
+
+## 2. 安裝 Laravel Reverb（含 broadcasting）
+
+```php
+php artisan install:broadcasting
+```
+
+此指令會：
+
+- 安裝 Laravel Reverb（WebSocket server）    
+- 安裝 Node.js 相關依賴（如 `laravel-echo`, `pusher-js`）
+- 發佈 `config/reverb.php`、`config/broadcasting.php`、`routes/channels.php`、生成 `resources/js/echo.js` 等文件
+    
+
+## 3. 更新環境設定（`.env`）
+
+```bash
+BROADCAST_CONNECTION=reverb
+
+REVERB_APP_ID=282384
+REVERB_APP_KEY=wnsbi729yxi4cejp8sfz
+REVERB_APP_SECRET=yqug4zffxexoilcyuk3b
+REVERB_HOST="localhost"
+REVERB_PORT=8080
+REVERB_SCHEME=http
+
+VITE_REVERB_APP_KEY="${REVERB_APP_KEY}"
+VITE_REVERB_HOST="${REVERB_HOST}"
+VITE_REVERB_PORT="${REVERB_PORT}"
+VITE_REVERB_SCHEME="${REVERB_SCHEME}"
+```
+
+這些變數用於 Laravel Echo 與 Reverb 的串接 
+
+## 4. 建立事件（Event）
+
+```
+php artisan make:event MessageSent
+```
+
+
+在 `app/Events/MessageSent.php` 中：
+
+```php
+<?php  
+
+namespace App\Events;  
+use Illuminate\Broadcasting\Channel; 
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast; 
+use Illuminate\Foundation\Events\Dispatchable; 
+use Illuminate\Queue\SerializesModels;  
+
+class MessageSent implements ShouldBroadcast {     
+
+	use Dispatchable, SerializesModels;      
+	
+	public $message;      
+	
+	public function __construct($message)     
+	{
+		$this->message = $message;     
+	}      
+	
+	public function broadcastOn()     {
+	    return new Channel('public-messages');     
+	}      
+	
+	public function broadcastAs()     {
+	    return 'message.sent';   
+	} 
+}
+```
+
+
+## 5. 定義 Route 與 View
+
+在 `routes/web.php` 添加：
+
+```php
+use App\Events\MessageSent;  
+
+Route::get('/send-message', function () {     
+	$message = [         
+		'user' => 'John Doe',         
+		'text' => 'Hello from Laravel Reverb!',         
+		'timestamp' => now()->toDateTimeString(),     
+		];     
+		
+	broadcast(new MessageSent($message));     
+	return response()->json(['status' => 'Message broadcasted!']); 
+});  
+
+Route::get('/receive-data', function () {
+	return view('receive'); 
+});
+```
+
+
+在 `resources/views/receive.blade.php` 中，匯入 Echo 並監聽事件：
+
+```html
+<!DOCTYPE html> 
+<html lang="en"> 
+<head> 
+	<meta charset="UTF-8"> 
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Reverb Broadcast</title> 
+	@vite(['resources/js/app.js']) {
+	{-- Load JS --}} 
+</head> 
+<body> 
+	<h1>Listening for Messages...</h1>
+	<pre id="output"></pre> 
+	<script> 
+		document.addEventListener("DOMContentLoaded", function () { 
+			window.Echo.channel("public-messages") 
+				.listen(".message.sent", (event) => { 
+					console.log("Received:", event); 
+					document.getElementById("output")
+						.textContent = JSON.stringify(event, null, 2); 
+			}); 
+		}); 
+	</script> 
+</body> 
+</html>
+```
+
+
+## 6. 編譯前端資產
+
+```
+npm install 
+npm run build
+```
+
+
+**實際上** 為了開發可熱重載，也可使用 `npm run dev`，但你可選 `run build` 產出正式檔案
+
+## 7. 啟動 Reverb server（可加 debug 模式）
+
+```
+php artisan reverb:start --debug
+```
+
+
+這樣可以輸出詳細 log，方便除錯 
+
+## 8. 啟動 Laravel 隊列工作者
+
+由於 `ShouldBroadcast` 預設使用 queue，必須啟動：
+
+```
+php artisan queue:work
+```
+
+
+或在本地開發環境設定 `.env` 為 `QUEUE_CONNECTION=sync` 就可以同步執行，但在正式應用上建議使用 queue:work 
+
+---
+
+### 總結流程
+
+| 步驟                      | 指令 / 文件                              | 說明                                      |
+| ----------------------- | ------------------------------------ | --------------------------------------- |
+| 安裝 broadcasting（Reverb） | `php artisan install:broadcasting`   | 建立 config、 echo.js 等                    |
+| 設定 `.env`               | 如上所示                                 | Reverb 與 Echo 參數                        |
+| 建立事件                    | `php artisan make:event MessageSent` | 使用 ShouldBroadcast 或 ShouldBroadcastNow |
+| route / view            | 如上範例                                 | broadcast 與前端監聽示例                       |
+| 編譯前端資產                  | `npm run build`                      | 或 `npm run dev`                         |
+| 啟動 Reverb               | `php artisan reverb:start --debug`   | debug 模式                                |
+| 啟動 queue                | `php artisan queue:work`             | 處理 broadcast queue                      |
