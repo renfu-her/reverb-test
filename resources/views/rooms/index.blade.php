@@ -17,6 +17,8 @@
                 @foreach($rooms as $room)
                     <div class="col-md-6 mb-3">
                         <div class="card h-100">
+                            <img src="{{ $room->image_url }}" class="card-img-top" alt="{{ $room->name }}" 
+                                 style="height: 200px; object-fit: cover;">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <h5 class="card-title">{{ $room->name }}</h5>

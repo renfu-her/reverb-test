@@ -143,17 +143,17 @@ $(document).ready(function() {
                     
                     response.participants.forEach(function(participant) {
                         const statusClass = 'status-' + (participant.profile?.status || 'offline');
-                        const avatar = participant.profile?.avatar ? 
-                            '/storage/' + participant.profile.avatar : 
-                            'https://via.placeholder.com/32';
+                        const avatarHtml = participant.profile?.avatar ? 
+                            '<img src="/storage/' + participant.profile.avatar + '" class="rounded-circle me-2" width="32" height="32" alt="' + participant.display_name + '">' :
+                            '<i class="fas fa-user-circle me-2" style="font-size: 32px; color: #6c757d;"></i>';
                         
                         $('#participantsList').append(`
                             <div class="d-flex align-items-center mb-2">
-                                <img src="${avatar}" class="rounded-circle me-2" width="32" height="32">
+                                ${avatarHtml}
                                 <div class="flex-grow-1">
                                     <div class="d-flex align-items-center">
                                         <span class="user-status ${statusClass}"></span>
-                                        <strong>${participant.display_name}</strong>
+                                        <strong>${participant.name}</strong>
                                     </div>
                                     <small class="text-muted">${participant.profile?.status || 'offline'}</small>
                                 </div>
@@ -235,14 +235,14 @@ $(document).ready(function() {
     
     function addMessage(message, user, isOwn) {
         const messageClass = isOwn ? 'own' : 'other';
-        const avatar = user.profile?.avatar ? 
-            '/storage/' + user.profile.avatar : 
-            'https://via.placeholder.com/32';
+        const avatarHtml = user.profile?.avatar ? 
+            '<img src="/storage/' + user.profile.avatar + '" class="rounded-circle me-2" width="24" height="24" alt="' + user.display_name + '">' :
+            '<i class="fas fa-user-circle me-2" style="font-size: 24px; color: #6c757d;"></i>';
         
         const messageHtml = `
             <div class="message ${messageClass}">
                 <div class="d-flex align-items-start">
-                    <img src="${avatar}" class="rounded-circle me-2" width="24" height="24">
+                    ${avatarHtml}
                     <div class="flex-grow-1">
                         <div class="d-flex align-items-center mb-1">
                             <strong class="me-2">${user.display_name}</strong>

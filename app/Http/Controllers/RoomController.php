@@ -52,8 +52,10 @@ class RoomController extends Controller
     public function show(Room $room): View
     {
         $room->load(['owner', 'messages.user.profile']);
+        $currentUser = Auth::user();
+        $isInRoom = $currentUser->isInRoom($room);
         
-        return view('rooms.show', compact('room'));
+        return view('rooms.show', compact('room', 'isInRoom'));
     }
 
     public function joinByCode(Request $request): JsonResponse

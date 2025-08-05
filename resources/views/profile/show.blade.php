@@ -12,8 +12,12 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-4 text-center">
-                        <img src="{{ $profile && $profile->avatar ? '/storage/' . $profile->avatar : 'https://via.placeholder.com/150' }}" 
-                             class="rounded-circle mb-3" width="150" height="150" alt="Avatar">
+                        @if($profile && $profile->avatar)
+                            <img src="/storage/{{ $profile->avatar }}" 
+                                 class="rounded-circle mb-3" width="150" height="150" alt="Avatar">
+                        @else
+                            <i class="fas fa-user-circle mb-3" style="font-size: 150px; color: #6c757d;"></i>
+                        @endif
                     </div>
                     <div class="col-md-8">
                         <h5>{{ $user->display_name }}</h5>

@@ -48,6 +48,20 @@ class User extends Authenticatable
         ];
     }
 
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::created(function ($user) {
+            // Create a default profile for new users
+            UserProfile::create([
+                'user_id' => $user->id,
+                'display_name' => $user->name,
+                'status' => 'online',
+            ]);
+        });
+    }
+
     public function profile(): HasOne
     {
         return $this->hasOne(UserProfile::class);
@@ -72,11 +86,35 @@ class User extends Authenticatable
 
     public function getDisplayNameAttribute(): string
     {
-        return $this->profile?->display_name ?? $this->name;
+        return $this->profile?->display_name ?? $this->name ?? 'Unknown User';
     }
 
     public function getAvatarAttribute(): ?string
     {
         return $this->profile?->avatar;
+    }
+
+    public function getAvatarUrlAttribute(): string
+    {
+        if ($this->avatar) {
+            return '/storage/' . $this->avatar;
+        }
+        return ''; // Return empty string for FontAwesome icon
+    }
+
+    public function getAvatarHtmlAttribute(): string
+    {
+        if ($this->avatar) {
+            return '<img src="' . $this->getAvatarUrlAttribute() . '" class="rounded-circle" alt="' . $this->display_name . '">';
+        }
+        return '<i class="fas fa-user-circle"></i>';
+    }
+
+    public function isInRoom(Room $room): bool
+    {
+        return $this->participatingRooms()
+            ->where('room_id', $room->id)
+            ->whereNull('left_at')
+            ->exists();
     }
 }
